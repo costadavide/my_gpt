@@ -29,14 +29,9 @@ class SoftMax:
         return sigma
 
     def backward(self, grad_output): 
-        # V_1: explicitly compute the Jacobian matrix 
+        # V_2: explicitly compute the Jacobian matrix (use numpy instead of for loops)
         J = np.zeros((self.output.shape[0], self.output.shape[0]))
-        for i in range(self.output.shape[0]): 
-            for j in range(self.output.shape[0]): 
-                if i == j: 
-                    J[i, j] = self.output[i] * (1 - self.output[i])
-                else: 
-                    J[i, j] = -self.output[i] * self.output[j]
+        J = np.diag(self.output) - np.outer(self.output, self.output)
 
         grad_input = np.dot(J.T, grad_output)
         return grad_input 
