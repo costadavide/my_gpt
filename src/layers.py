@@ -29,8 +29,7 @@ class SoftMax:
         return sigma
 
     def backward(self, grad_output): 
-        # V_3: avoid computing the Jacobian matrix explicitly 
-        grad_input = self.output * (grad_output - (self.output @ grad_output))
+        grad_input = self.output * (grad_output - np.sum(self.output * grad_output, axis=self.axis, keepdims=True))
         return grad_input 
 
 class EmbeddingLayer: 
@@ -40,34 +39,3 @@ class EmbeddingLayer:
 class MultiHeadAttention:
     def __init__(self):
         pass 
-
-
-x = np.array([0.5, -1.0, 2.0])
-grad_output = np.array([0.3, -0.7, 1.2])
-
-softmax = SoftMax()
-
-softmax.forward(x)
-analytical = softmax.backward(grad_output)
-
-def f(x):
-    y = softmax.forward(x)
-    return np.sum(y * grad_output)
-
-eps = 1e-5
-numerical = np.zeros_like(x)
-
-for i in range(len(x)):
-    x_plus = x.copy()
-    x_minus = x.copy()
-
-    x_plus[i] += eps
-    x_minus[i] -= eps
-
-    numerical[i] = (
-        f(x_plus) - f(x_minus)
-    ) / (2 * eps)
-
-print("Analytical:", analytical)
-print("Numerical: ", numerical)
-print("Difference:", analytical - numerical)
