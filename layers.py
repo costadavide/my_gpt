@@ -29,11 +29,8 @@ class SoftMax:
         return sigma
 
     def backward(self, grad_output): 
-        # V_2: explicitly compute the Jacobian matrix (use numpy instead of for loops)
-        J = np.zeros((self.output.shape[0], self.output.shape[0]))
-        J = np.diag(self.output) - np.outer(self.output, self.output)
-
-        grad_input = np.dot(J.T, grad_output)
+        # V_3: avoid computing the Jacobian matrix explicitly 
+        grad_input = self.output * (grad_output - (self.output @ grad_output))
         return grad_input 
 
 class EmbeddingLayer: 
