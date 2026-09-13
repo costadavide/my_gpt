@@ -24,8 +24,33 @@ class Linear:
         return grad_input # grad_input.shape = (B, T, input_dim)
 
 class LayerNorm: 
-    def __init__(self):
-        pass 
+    def __init__(self, input_dim, eps=1e-5):
+        self.input_dim = input_dim
+        self.eps = eps  
+        self.gamma = np.ones(self.input_dim) 
+        self.beta = np.zeros(self.input_dim)
+        self.input = None # x.shape = (B, T, input_dim)
+        self.output = None # output.shape = (B, T, input_dim)
+        self.mean = None 
+        self.variance = None 
+        self.x_hat = None 
+
+        # keep gradients for backward pass
+        self.gamma_grad = None
+        self.beta_grad = None
+
+
+    def forward(self, x): 
+        self.input = x 
+        self.mean = np.mean(x, axis=-1, keepdims=True)
+        self.variance = np.var(x, axis=-1, keepdims=True)
+        self.x_hat = (x-self.mean) / np.sqrt(self.variance + self.eps)
+        y = self.gamma * self.x_hat + self.beta 
+        self.output = y
+        return y 
+
+    def backward(self, grad_output): 
+        pass
 
 class FeedForward: 
     def __init__(self):
