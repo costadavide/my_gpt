@@ -3,8 +3,25 @@ import numpy as np
 
 
 class Linear: 
-    def __init__(self):
-        pass 
+    def __init__(self, input_dim, output_dim):
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.weights = np.random.randn(input_dim, output_dim) / np.sqrt(input_dim)
+        self.bias = np.zeros(output_dim) 
+        self.input = None 
+        self.weights_grad = None
+        self.bias_grad = None 
+
+    def forward(self, x): 
+        self.input = x
+        y = x @ self.weights + self.bias # x.shape = (B, T, input_dim), weights.shape = (input_dim, output_dim), bias.shape = (output_dim, )
+        return y # y.shape = (B, T, output_dim)
+
+    def backward(self, grad_output): 
+        grad_input = grad_output @ self.weights.T # grad_output.shape = (B, T, output_dim), weights.shape = (input_dim, output_dim)
+        self.bias_grad = np.sum(grad_output, axis=(0, 1)) # bias_grad.shape = (output_dim, )
+        self.weights_grad = self.input.reshape(-1, self.input_dim).T @ grad_output.reshape(-1, self.output_dim)# x.shape = (B, T, input_dim), grad_output.shape = (B, T, output_dim), weights_grad.shape = (input_dim, output_dim)
+        return grad_input # grad_input.shape = (B, T, input_dim)
 
 class LayerNorm: 
     def __init__(self):
