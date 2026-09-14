@@ -38,10 +38,13 @@ $$
 To get the gradient the first step is to derive the partial derivative of the output $y$ wrt to the input $x$. For each $y_i$ and each $x_j$ the $\frac{\partial y_i}{\partial x_j}$ is:
 
 - if $i\neq j$ :
+
   $$
   \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_j}+\sum_{k\neq j} e^{x_k}} = -\frac{e^{x_i}\cdot e^{x_j}}{(\sum_{k}e^{x_k})^2} = - y_i \cdot y_j
   $$
+
 - if $i = j$:
+
   $$
   \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_i}+\sum_{k\neq i} e^{x_k}}= \frac{e^{x_i}(\sum_{k}e^{x_k}-e^{x_i})}{(\sum_{k}e^{x_k})^2} = y_i(1-y_i)
   $$
@@ -76,12 +79,8 @@ Using `numpy` this can be done efficiently, without having to specifically build
 
 `grad_input = self.output * (grad_output - np.sum(self.output * grad_output, axis=self.axis, keepdims=True))`
 
-This computes the whole gradient using vectorized operations, without explicitly constructing the Jacobian matrix, making the computation more memory and computationally efficient
+This computes the whole gradient using vectorized operations, without explicitly constructing the Jacobian matrix, making the computation more memory and computationally efficient.
 
 ## Linear
 
 ## Layer Norm
-
-```
-
-```
