@@ -39,29 +39,29 @@ To get the gradient the first step is to derive the partial derivative of the ou
 
 - if $i\neq j$ :
 
-  $$
+  ```math
   \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_j}+\sum_{k\neq j} e^{x_k}} = -\frac{e^{x_i}\cdot e^{x_j}}{(\sum_{k}e^{x_k})^2} = - y_i \cdot y_j
-  $$
+  ```
 
 - if $i = j$:
 
-  $$
+  ```math
   \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_i}+\sum_{k\neq i} e^{x_k}}= \frac{e^{x_i}(\sum_{k}e^{x_k}-e^{x_i})}{(\sum_{k}e^{x_k})^2} = y_i(1-y_i)
-  $$
+  ```
 
 Thus each output element $y_i$ depends on all input elements $x_j$. Considering the two cases above the Jacobian can be calculated, being $y_i(1-y_i)$ along the main diagonal and $-y_i \cdot y_j$ in the rest of the matrix.
 
 The last step is computing $\frac{\partial L}{\partial x}$:
 
-$$
+```math
 \frac{\partial L}{\partial x_i} = \sum_{j} \frac{\partial L}{\partial y_j} \cdot \frac{\partial y_j}{\partial x_i}
-$$
+```
 
 The first part is given as input to `SoftMax.backward()`. The second part can be calculated as seen above, selecting the correct case depending on whether $i=j$ or not.
 
 By combining everything together the final formula for computing the gradient is:
 
-$$
+```math
 \boxed{
 \frac{\partial L}{\partial x_i}
 =
@@ -73,7 +73,7 @@ y_i
 y_j\frac{\partial L}{\partial y_j}
 \right)
 }
-$$
+```
 
 Using `numpy` this can be done efficiently, without having to specifically build the Jacobian matrix. In actual code this translates to:
 
