@@ -37,17 +37,17 @@ $$
 
 To get the gradient the first step is to derive the partial derivative of the output $y$ wrt to the input $x$. For each $y_i$ and each $x_j$ the $\frac{\partial y_i}{\partial x_j}$ is:
 
-- if $i\neq j$ :
+**If $i \neq j$:**
 
-  ```math
-  \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_j}+\sum_{k\neq j} e^{x_k}} = -\frac{e^{x_i}\cdot e^{x_j}}{(\sum_{k}e^{x_k})^2} = - y_i \cdot y_j
-  ```
+```math
+\frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_j}+\sum_{k\neq j} e^{x_k}} = -\frac{e^{x_i}\cdot e^{x_j}}{(\sum_{k}e^{x_k})^2} = - y_i \cdot y_j
+```
 
-- if $i = j$:
+**If $i = j$:**
 
-  ```math
-  \frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_i}+\sum_{k\neq i} e^{x_k}}= \frac{e^{x_i}(\sum_{k}e^{x_k}-e^{x_i})}{(\sum_{k}e^{x_k})^2} = y_i(1-y_i)
-  ```
+```math
+\frac{\partial }{\partial x_j}\frac{e^{x_i}}{e^{x_i}+\sum_{k\neq i} e^{x_k}}= \frac{e^{x_i}(\sum_{k}e^{x_k}-e^{x_i})}{(\sum_{k}e^{x_k})^2} = y_i(1-y_i)
+```
 
 Thus each output element $y_i$ depends on all input elements $x_j$. Considering the two cases above the Jacobian can be calculated, being $y_i(1-y_i)$ along the main diagonal and $-y_i \cdot y_j$ in the rest of the matrix.
 
