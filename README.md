@@ -1,3 +1,9 @@
+# AIM OF THE PROJECT
+
+The aim of this project is to implement a mini-GPT from scratch using only `numpy`. Each class and function is also documented here to clearly explain how it works and make the project easier to understand and revisit.
+
+Currently, the focus is on implementing all the layers of the decoder-only transformer. The training pipeline will be added afterward.
+
 # TO DO
 
 1. Implementation of the FeedNeuralNetwork layer
