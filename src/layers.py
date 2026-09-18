@@ -1,7 +1,5 @@
 import numpy as np 
 
-
-
 class Linear: 
     def __init__(self, input_dim, output_dim):
         self.input_dim = input_dim
@@ -34,6 +32,8 @@ class LayerNorm:
         self.mean = None 
         self.variance = None 
         self.x_hat = None 
+        self.c = None
+        self.r = None 
 
         # keep gradients for backward pass
         self.gamma_grad = None
@@ -44,13 +44,25 @@ class LayerNorm:
         self.input = x 
         self.mean = np.mean(x, axis=-1, keepdims=True)
         self.variance = np.var(x, axis=-1, keepdims=True)
-        self.x_hat = (x-self.mean) / np.sqrt(self.variance + self.eps)
+        self.c = x - self.mean
+        self.r = 1/np.sqrt(self.variance + self.eps)
+        self.x_hat = self.c * self.r
         y = self.gamma * self.x_hat + self.beta 
         self.output = y
         return y 
 
     def backward(self, grad_output): 
-        pass
+        self.gamma_grad = np.sum(grad_output * self.x_hat, axis=(0, 1)) # gamma_grad.shape = (input_dim, )
+        self.beta_grad = np.sum(grad_output, axis=(0, 1)) # beta_grad.shape = (input_dim, )
+        grad_x_hat = grad_output * self.gamma # grad_x_hat.shape = (B, T, input_dim)
+        grad_c = grad_x_hat * self.r # grad_c.shape = (B, T, input_dim)
+        grad_r = np.sum(grad_x_hat * self.c, axis=-1, keepdims=True) # grad_r.shape = (B, T, 1)
+        grad_variance = grad_r * (-0.5) * (self.variance + self.eps)**(-1.5) # grad_variance.shape = (B, T)
+        grad_c += grad_variance * 2 * self.c / self.input_dim # grad_c.shape = (B, T, input_dim)
+        grad_mean = -np.sum(grad_c, axis=-1, keepdims=True) # grad_mean.shape = (B, T, 1)
+        grad_input = grad_c + grad_mean / self.input_dim # grad_input.shape = (B, T, input_dim)
+
+        return grad_input
 
 class FeedForward: 
     def __init__(self):
