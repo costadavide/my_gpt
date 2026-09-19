@@ -119,8 +119,25 @@ class SoftMax:
         return grad_input 
 
 class EmbeddingLayer: 
-    def __init__(self):
-        pass 
+    def __init__(self, num_embeddings, embedding_dim):
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+        self.embedding_matrix = np.random.randn(num_embeddings, embedding_dim) # embedding_matrix.shape = (num_embeddings, embedding_dim)
+        # consider changing the initializaton, as in GPT2 did something different 
+        self.input = None # input.shape = (B, T) (these are indices of the tokens in the vocabulary)
+        self.embedding_grad = None
+
+    def forward(self, x):
+        self.input = x
+        return self.embedding_matrix[x]
+
+    def backward(self, grad_output):
+        x = self.input 
+        # for each index in the input, accumulate the gradient for the corresponding embedding vector
+        self.embedding_grad = np.zeros_like(self.embedding_matrix)
+        np.add.at(self.embedding_grad, x, grad_output)
+        # here no need to return anything 
+
 
 class MultiHeadAttention:
     def __init__(self):
