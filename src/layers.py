@@ -80,8 +80,25 @@ class GELU:
         return grad_input
 
 class FeedForward: 
-    def __init__(self):
-        pass 
+    def __init__(self, input_dim):
+        self.input_dim = input_dim
+        self.hidden_dim = 4 * input_dim # default in GPT2 architecture
+        self.linear1 = Linear(self.input_dim, self.hidden_dim)
+        self.gelu = GELU()
+        self.linear2 = Linear(self.hidden_dim, self.input_dim)
+
+    def forward(self, x):
+        x = self.linear1.forward(x)
+        x = self.gelu.forward(x)
+        x = self.linear2.forward(x)
+        return x 
+
+    def backward(self, grad_output):
+        grad = self.linear2.backward(grad_output)
+        grad = self.gelu.backward(grad)
+        grad = self.linear1.backward(grad)
+        return grad
+        
 
 class SoftMax:
     def __init__(self, axis=-1):
