@@ -1,207 +1,133 @@
-from src.layers import Linear 
+from src.layers import Linear
 
 import numpy as np
 
-np.random.seed(42)
-
-# --------------------------------------------------
-# Setup
-# --------------------------------------------------
 
 B = 2
 T = 3
 input_dim = 4
 output_dim = 5
 
-layer = Linear(input_dim, output_dim)
 
-x = np.random.randn(B, T, input_dim)
-grad_output = np.random.randn(B, T, output_dim)
+def make_inputs():
+    np.random.seed(42)
+    layer = Linear(input_dim, output_dim)
+    x = np.random.randn(B, T, input_dim)
+    grad_output = np.random.randn(B, T, output_dim)
+    return layer, x, grad_output
+
+
+def numerical_gradient(loss, param, eps=1e-5):
+    # Central differences: perturb param in place, then restore it.
+    # The scalar loss is L = sum(y * grad_output), so dL/dy = grad_output.
+    grad = np.zeros_like(param)
+
+    for index in np.ndindex(param.shape):
+        original = param[index]
+
+        param[index] = original + eps
+        loss_plus = loss()
+
+        param[index] = original - eps
+        loss_minus = loss()
+
+        param[index] = original
+
+        grad[index] = (loss_plus - loss_minus) / (2 * eps)
+
+    return grad
+
 
 # --------------------------------------------------
 # 1. Initialization tests
 # --------------------------------------------------
 
-assert layer.weights.shape == (input_dim, output_dim)
-assert layer.bias.shape == (output_dim,)
+def test_initialization():
+    layer, _, _ = make_inputs()
 
-assert np.all(layer.bias == 0)
-
-print("Initialization tests passed")
+    assert layer.weights.shape == (input_dim, output_dim)
+    assert layer.bias.shape == (output_dim,)
+    assert np.all(layer.bias == 0)
 
 
 # --------------------------------------------------
 # 2. Forward-pass tests
 # --------------------------------------------------
 
-y = layer.forward(x)
+def test_forward():
+    layer, x, _ = make_inputs()
 
-assert y.shape == (B, T, output_dim)
+    y = layer.forward(x)
 
-# Compare with explicit computation for one position
-b = 0
-t = 0
+    assert y.shape == (B, T, output_dim)
 
-manual_y = x[b, t] @ layer.weights + layer.bias
+    # Compare with explicit computation for one position
+    manual_y = x[0, 0] @ layer.weights + layer.bias
 
-assert np.allclose(
-    y[b, t],
-    manual_y
-)
-
-print("Forward tests passed")
+    assert np.allclose(y[0, 0], manual_y)
 
 
 # --------------------------------------------------
 # 3. Analytical backward pass
 # --------------------------------------------------
 
-layer.forward(x)
-grad_input = layer.backward(grad_output)
+def test_backward_shapes():
+    layer, x, grad_output = make_inputs()
 
-assert grad_input.shape == x.shape
-assert layer.weights_grad.shape == layer.weights.shape
-assert layer.bias_grad.shape == layer.bias.shape
+    layer.forward(x)
+    grad_input = layer.backward(grad_output)
 
-print("Backward shape tests passed")
-
-
-# --------------------------------------------------
-# Scalar function used for numerical differentiation
-#
-# L = sum(y * grad_output)
-#
-# Therefore:
-# dL/dy = grad_output
-# --------------------------------------------------
-
-def loss():
-    y = layer.forward(x)
-    return np.sum(y * grad_output)
-
-
-eps = 1e-5
+    assert grad_input.shape == x.shape
+    assert layer.weights_grad.shape == layer.weights.shape
+    assert layer.bias_grad.shape == layer.bias.shape
 
 
 # --------------------------------------------------
 # 4. Numerical gradient with respect to INPUT
 # --------------------------------------------------
 
-numerical_input_grad = np.zeros_like(x)
+def test_input_gradient():
+    layer, x, grad_output = make_inputs()
 
-for index in np.ndindex(x.shape):
+    layer.forward(x)
+    grad_input = layer.backward(grad_output)
 
-    original = x[index]
+    numerical = numerical_gradient(
+        lambda: np.sum(layer.forward(x) * grad_output), x
+    )
 
-    x[index] = original + eps
-    loss_plus = loss()
-
-    x[index] = original - eps
-    loss_minus = loss()
-
-    x[index] = original
-
-    numerical_input_grad[index] = (
-        loss_plus - loss_minus
-    ) / (2 * eps)
-
-
-print(
-    "Input gradient max error:",
-    np.max(np.abs(
-        grad_input - numerical_input_grad
-    ))
-)
-
-assert np.allclose(
-    grad_input,
-    numerical_input_grad,
-    atol=1e-5
-)
-
-print("Input gradient test passed")
+    assert np.allclose(grad_input, numerical, atol=1e-5)
 
 
 # --------------------------------------------------
 # 5. Numerical gradient with respect to WEIGHTS
 # --------------------------------------------------
 
-numerical_weights_grad = np.zeros_like(layer.weights)
+def test_weights_gradient():
+    layer, x, grad_output = make_inputs()
 
-for index in np.ndindex(layer.weights.shape):
+    layer.forward(x)
+    layer.backward(grad_output)
 
-    original = layer.weights[index]
+    numerical = numerical_gradient(
+        lambda: np.sum(layer.forward(x) * grad_output), layer.weights
+    )
 
-    layer.weights[index] = original + eps
-    loss_plus = loss()
-
-    layer.weights[index] = original - eps
-    loss_minus = loss()
-
-    layer.weights[index] = original
-
-    numerical_weights_grad[index] = (
-        loss_plus - loss_minus
-    ) / (2 * eps)
-
-
-print(
-    "Weight gradient max error:",
-    np.max(np.abs(
-        layer.weights_grad - numerical_weights_grad
-    ))
-)
-
-assert np.allclose(
-    layer.weights_grad,
-    numerical_weights_grad,
-    atol=1e-5
-)
-
-print("Weight gradient test passed")
+    assert np.allclose(layer.weights_grad, numerical, atol=1e-5)
 
 
 # --------------------------------------------------
 # 6. Numerical gradient with respect to BIAS
 # --------------------------------------------------
 
-numerical_bias_grad = np.zeros_like(layer.bias)
+def test_bias_gradient():
+    layer, x, grad_output = make_inputs()
 
-for index in np.ndindex(layer.bias.shape):
+    layer.forward(x)
+    layer.backward(grad_output)
 
-    original = layer.bias[index]
+    numerical = numerical_gradient(
+        lambda: np.sum(layer.forward(x) * grad_output), layer.bias
+    )
 
-    layer.bias[index] = original + eps
-    loss_plus = loss()
-
-    layer.bias[index] = original - eps
-    loss_minus = loss()
-
-    layer.bias[index] = original
-
-    numerical_bias_grad[index] = (
-        loss_plus - loss_minus
-    ) / (2 * eps)
-
-
-print(
-    "Bias gradient max error:",
-    np.max(np.abs(
-        layer.bias_grad - numerical_bias_grad
-    ))
-)
-
-assert np.allclose(
-    layer.bias_grad,
-    numerical_bias_grad,
-    atol=1e-5
-)
-
-print("Bias gradient test passed")
-
-
-# --------------------------------------------------
-# Final result
-# --------------------------------------------------
-
-print("\nAll Linear layer tests passed!")
+    assert np.allclose(layer.bias_grad, numerical, atol=1e-5)
