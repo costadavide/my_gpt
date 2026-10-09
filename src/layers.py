@@ -57,7 +57,7 @@ class LayerNorm:
         grad_x_hat = grad_output * self.gamma # grad_x_hat.shape = (B, T, input_dim)
         grad_c = grad_x_hat * self.r # grad_c.shape = (B, T, input_dim)
         grad_r = np.sum(grad_x_hat * self.c, axis=-1, keepdims=True) # grad_r.shape = (B, T, 1)
-        grad_variance = grad_r * (-0.5) * (self.variance + self.eps)**(-1.5) # grad_variance.shape = (B, T)
+        grad_variance = grad_r * (-0.5) * (self.variance + self.eps)**(-1.5) # grad_variance.shape = (B, T, 1)
         grad_c += grad_variance * 2 * self.c / self.input_dim # grad_c.shape = (B, T, input_dim)
         grad_mean = -np.sum(grad_c, axis=-1, keepdims=True) # grad_mean.shape = (B, T, 1)
         grad_input = grad_c + grad_mean / self.input_dim # grad_input.shape = (B, T, input_dim)
@@ -140,5 +140,67 @@ class EmbeddingLayer:
 
 
 class MultiHeadAttention:
-    def __init__(self):
-        pass 
+    def __init__(self, input_dim, num_heads):
+        assert input_dim % num_heads == 0 # ensure that the input dimension is divisible by the number of heads
+        self.num_heads = num_heads
+        self.input_dim = input_dim
+        self.head_dim = input_dim // num_heads
+        self.Q = Linear(input_dim, input_dim)
+        self.K = Linear(input_dim, input_dim)
+        self.V = Linear(input_dim, input_dim)
+        self.output_projection = Linear(input_dim, input_dim)
+        self.softmax = SoftMax(axis=-1)
+        self.Q_out = None
+        self.K_out = None
+        self.V_out = None
+        self.attention_weights = None
+        self.scale = 1 / np.sqrt(self.head_dim)
+
+    def forward(self, x):
+        self.Q_out = self.Q.forward(x) # shape = (B, T, input_dim)
+        self.K_out = self.K.forward(x) # shape = (B, T, input_dim)
+        self.V_out = self.V.forward(x) # shape = (B, T, input_dim)
+        B, T, _ = x.shape
+        # reshape Q, K, V to (B, num_heads, T, head_dim)
+        self.Q_out = self.Q_out.reshape((B, T, self.num_heads, self.head_dim)).transpose((0, 2, 1, 3))
+        self.K_out = self.K_out.reshape((B, T, self.num_heads, self.head_dim)).transpose((0, 2, 1, 3))
+        self.V_out = self.V_out.reshape((B, T, self.num_heads, self.head_dim)).transpose((0, 2, 1, 3))
+
+        scores = self.Q_out @ self.K_out.transpose((0, 1, 3, 2)) * self.scale # shape = (B, num_heads, T, T)
+        causal_mask = np.triu(np.ones((T, T), dtype=bool), k=1) # can do (T, T) as numpy will broadcast mask across all batches and heads
+        scores = np.where(causal_mask, -np.inf, scores) # make -inf the attention scores of tokens after one considered (so when apply softmax result is 0)
+
+        self.attention_weights = self.softmax.forward(scores) # attention_weights.shape = (B, num_heads, T, T), softmax acts only on last dimension
+
+        head_outputs = self.attention_weights @ self.V_out # head_outputs.shape(B, num_heads, T, head_dim)
+        concat_heads = head_outputs.transpose((0, 2, 1, 3)).reshape((B, T, self.input_dim)) # concat_heads.shape = (B, T, input_dim), concatenate heads together
+
+        output = self.output_projection.forward(concat_heads) # output.shape = (B, T, input_dim)
+
+        return output
+
+    def backward(self, grad_output):
+        grad_projection = self.output_projection.backward(grad_output) # shape = (B, T, input_dim)
+        grad_concat_heads = grad_projection.reshape((grad_projection.shape[0], grad_projection.shape[1], self.num_heads, self.head_dim)) # shape = (B, T, num_heads, head_dim)
+        grad_head_outputs = grad_concat_heads.transpose((0, 2, 1, 3)) # shape = (B, num_heads, T, head_dim)
+
+        grad_attention_weights = grad_head_outputs @ self.V_out.transpose((0, 1, 3, 2)) # shape = (B, num_heads, T, T)
+        grad_V_out = self.attention_weights.transpose((0, 1, 3, 2)) @ grad_head_outputs # shape = (B, num_heads, T, head_dim)
+
+        grad_scores = self.softmax.backward(grad_attention_weights) # shape = (B, num_heads, T, T)
+
+        grad_Q_out = grad_scores @ self.K_out * self.scale # shape = (B, num_heads, T, head_dim)
+        grad_K_out = grad_scores.transpose((0, 1, 3, 2)) @ self.Q_out * self.scale # shape = (B, num_heads, T, head_dim)
+
+        B, _, T, _ = grad_V_out.shape
+
+        grad_V_out = grad_V_out.transpose((0, 2, 1, 3)).reshape((B, T, self.input_dim))
+        grad_Q_out = grad_Q_out.transpose((0, 2, 1, 3)).reshape((B, T, self.input_dim))
+        grad_K_out = grad_K_out.transpose((0, 2, 1, 3)).reshape((B, T, self.input_dim))
+
+        grad_Q = self.Q.backward(grad_Q_out)
+        grad_V = self.V.backward(grad_V_out)
+        grad_K = self.K.backward(grad_K_out)
+
+        grad_input = grad_Q + grad_V + grad_K
+        return grad_input
