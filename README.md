@@ -7,6 +7,8 @@ Currently, the focus is on implementing all the layers of the decoder-only trans
 # TO DO
 
 1. Tokenizer
+2. Get data for training
+3. Training
 
 # IMPLEMENTED
 
