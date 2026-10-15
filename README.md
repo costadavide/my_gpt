@@ -99,8 +99,10 @@ where: $x$ is the input tensor, $W$ is the weight matrix of dimension (input_dim
 For each output element $y_j$, we have the following:
 
 $$
-y_j = \sum_{i=0}^{\text{input\_dim}-1} x_i W_{ij} + b_j
+y_j = \sum_{i=0}^{D-1} x_i W_{ij} + b_j
 $$
+
+with D = input_dim.
 
 For simplicity, the following backward pass derivations assume a single input vector. The extension to batch and sequence dimensions is discussed at the end.
 
