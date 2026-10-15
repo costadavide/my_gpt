@@ -99,14 +99,14 @@ where: $x$ is the input tensor, $W$ is the weight matrix of dimension (input_dim
 For each output element $y_j$, we have the following:
 
 $$
-y_j = \sum_{i=0}^{input\_dim-1} x_i W_{ij} + b_j
+y_j = \sum_{i=0}^{\text{input\_dim}-1} x_i W_{ij} + b_j
 $$
 
 For simplicity, the following backward pass derivations assume a single input vector. The extension to batch and sequence dimensions is discussed at the end.
 
 `Linear.backward()` computes the gradients of the loss wrt. the input $x$, the weights $W$, and the bias $b$.
 
-Let's start with the $\textbf{input}$. The partial derivative of $y_j$ wrt. $x_i$ is:
+Let's start with the **input**. The partial derivative of $y_j$ wrt. $x_i$ is:
 
 $$
 \frac{\partial y_j}{\partial x_i} = \frac{\partial \sum_k x_k W_{kj} + b_j}{\partial x_i} = W_{ij}
@@ -126,7 +126,7 @@ $$
 }
 $$
 
-Now let's consider the $\textbf{weights}$. The partial derivative of $y_j$ wrt. $W_ij$ is:
+Now let's consider the **weights**. The partial derivative of $y_j$ wrt. $W_ij$ is:
 
 $$
 \frac{\partial y_j}{\partial W_{ij}} = \frac{\partial \sum_k x_k W_{kj} + b_j}{\partial W_{ij}} = x_i
@@ -146,7 +146,7 @@ $$
 }
 $$
 
-At last we consider the $\textbf{bias}$. The partial derivative of $y_j$ wrt. $b_j$ is:
+At last we consider the **bias**. The partial derivative of $y_j$ wrt. $b_j$ is:
 
 $$
 \frac{\partial y_j}{\partial b_j} = \frac{\partial \sum_i x_i W_{ij} + b_j }{\partial b_j} = 1
@@ -160,7 +160,7 @@ $$
 }
 $$
 
-$\textbf{Note on batch and sequence dimensions}$
+**Note on batch and sequence dimensions**
 
 The derivations above assume a single input vector of shape (input_dim,). However, in the GPT-2 architecture, the input to the Linear layer has shape (B, T, input_dim), where B represents the batch size and T the sequence length.
 
