@@ -6,10 +6,7 @@ Currently, the focus is on implementing all the layers of the decoder-only trans
 
 # TO DO
 
-1. Implementation of the FeedNeuralNetwork layer
-2. Implementation of the Embedding Layer
-3. Implementation of the MultiHeadAttention layer
-4. Backward pass for LayerNorm
+1. Tokenizer
 
 # IMPLEMENTED
 
@@ -89,4 +86,106 @@ This computes the whole gradient using vectorized operations, without explicitly
 
 ## Linear
 
+`Linear.forward()` takes as input a tensor $x$ and applies an affine transformation to its last dimension. Each output element is then computed as a weighted sum of the input elements, plus a bias.
+
+The operation is defined as:
+
+$$
+y = xW + b
+$$
+
+where: $x$ is the input tensor, $W$ is the weight matrix of dimension (input_dim, output_dim), $b$ is the bias vector, and $y$ is the output tensor.
+
+For each output element $y_j$, we have the following:
+
+$$
+y_j = \sum_{i=0}^{input\_dim-1} x_i W_{ij} + b_j
+$$
+
+For simplicity, the following backward pass derivations assume a single input vector. The extension to batch and sequence dimensions is discussed at the end.
+
+`Linear.backward()` computes the gradients of the loss wrt. the input $x$, the weights $W$, and the bias $b$.
+
+Let's start with the $\textbf{input}$. The partial derivative of $y_j$ wrt. $x_i$ is:
+
+$$
+\frac{\partial y_j}{\partial x_i} = \frac{\partial \sum_k x_k W_{kj} + b_j}{\partial x_i} = W_{ij}
+$$
+
+Applying the chain rule:
+
+$$
+\frac{\partial L}{\partial x_i}=\sum_j\frac{\partial L}{\partial y_j}\frac{\partial y_j}{\partial x_i} = \sum_j\frac{\partial L}{\partial y_j} \cdot W_{ij}
+$$
+
+We can exploit `numpy` and compute this with just one matrix multiplication as:
+
+$$
+\boxed{
+\frac{\partial L}{\partial x}=\frac{\partial L}{\partial y} \cdot W^T
+}
+$$
+
+Now let's consider the $\textbf{weights}$. The partial derivative of $y_j$ wrt. $W_ij$ is:
+
+$$
+\frac{\partial y_j}{\partial W_{ij}} = \frac{\partial \sum_k x_k W_{kj} + b_j}{\partial W_{ij}} = x_i
+$$
+
+Again using the chain rule we get:
+
+$$
+\frac{\partial L}{\partial W_{ij}}=\frac{\partial L}{\partial y_j}\frac{\partial y_j}{\partial W_{ij}} = \frac{\partial L}{\partial y_j} \cdot x_i
+$$
+
+Again using `numpy` this can be calculated just using matrix multiplication:
+
+$$
+\boxed{
+\frac{\partial L}{\partial W}=x^T \cdot \frac{\partial L}{\partial y}
+}
+$$
+
+At last we consider the $\textbf{bias}$. The partial derivative of $y_j$ wrt. $b_j$ is:
+
+$$
+\frac{\partial y_j}{\partial b_j} = \frac{\partial \sum_i x_i W_{ij} + b_j }{\partial b_j} = 1
+$$
+
+Using the chain rule we get:
+
+$$
+\boxed{
+\frac{\partial L}{\partial b}=\frac{\partial L}{\partial y}
+}
+$$
+
+$\textbf{Note on batch and sequence dimensions}$
+
+The derivations above assume a single input vector of shape (input_dim,). However, in the GPT-2 architecture, the input to the Linear layer has shape (B, T, input_dim), where B represents the batch size and T the sequence length.
+
+The same linear transformation is applied independently to every token in every batch. Consequently:
+
+- The input gradient is computed independently for each token using the same weight matrix.
+- The weight gradient is obtained by summing the contributions from all tokens across all batches.
+- The bias gradient is obtained by summing the output gradients across the batch and sequence dimensions.
+
+Using `numpy`, the three gradients can be calculated as:
+
+`grad_input = grad_output @ self.weights.T`
+
+`weights_grad = self.input.reshape(-1, self.input_dim).T @ grad_output.reshape(-1, self.output_dim)`
+
+`bias_grad = np.sum(grad_output, axis=(0, 1))`
+
+The batch and sequence dimensions are combined when computing the weight gradient to allow the use of a single matrix multiplication.
+
 ## Layer Norm
+
+## GELU
+
+## FeedForward
+
+## Embedding Layer
+
+## MultiHead Attention
