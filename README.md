@@ -193,3 +193,14 @@ The batch and sequence dimensions are combined when computing the weight gradien
 ## Embedding Layer
 
 ## MultiHead Attention
+
+## Tokenizer
+
+Regex explanation:
+
+- `\'s|\'t|\'re|\'ve|\'m|\'ll|\'d`: looks at known contractions (e.g.: will --> 'll). If ' before a set of characters which don't form one of those contractions, then it is considered as a single character;
+- ` ?[a-zA-Z]+`: look if there is one space before the start of a word and then consider a word as a set of contiguous alphabetical characters;
+- ` ?[0-9]+`: same as above just for numbers;
+- ` ?[^a-zA-Z0-9\s]+`: find contiguous set of characters with are not alphanumeric, again with the possibility of having a whitespace at the start of it;
+- `\s+(?!\S)`: matches whitespaces only if the character immediately after the match is not a non-whitespace character, the look ahead only checks the next character but it doesn't consume it;
+- `\s+`: simply matches one or more consecutive whitespace characters, used as a fallback for when the above alternative cannot match.
